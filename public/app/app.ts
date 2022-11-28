@@ -81,6 +81,7 @@ import { setVariableQueryRunner, VariableQueryRunner } from './features/variable
 import { createQueryVariableAdapter } from './features/variables/query/adapter';
 import { createSystemVariableAdapter } from './features/variables/system/adapter';
 import { createTextBoxVariableAdapter } from './features/variables/textbox/adapter';
+import { remotePanels } from './pluginCDNDummyData';
 import { configureStore } from './store/configureStore';
 
 // add move to lodash for backward compatabilty with plugins
@@ -108,57 +109,9 @@ export class GrafanaApp {
       const loadLocalePromise = initializeI18n(config.bootData.user.locale);
 
       // WOOOHOOOO --------------------
-      const baseUrl = 'https://storage.googleapis.com/plugin-cdn/grafana-clock-panel/2.1.0';
-      const moduleUrl = `${baseUrl}/module.js`;
-      config.panels['grafana-clock-panel'] = {
-        id: 'grafana-clock-panel',
-        name: 'Clock',
-        info: {
-          author: {
-            name: 'Grafana Labs',
-            url: 'https://grafana.com',
-          },
-          description: 'Clock panel for grafana',
-          links: [
-            {
-              name: 'Project site',
-              url: 'https://github.com/grafana/clock-panel',
-            },
-            {
-              name: 'MIT License',
-              url: 'https://github.com/grafana/clock-panel/blob/master/LICENSE',
-            },
-          ],
-          logos: {
-            small: `${baseUrl}/img/clock.svg`,
-            large: `${baseUrl}/img/clock.svg`,
-          },
-          build: {
-            time: 1657138674187,
-            repo: 'https://github.com/grafana/clock-panel',
-            branch: 'master',
-            hash: 'dfcdaf668efc3a5a5845b245313832b2eaa8df2f',
-          },
-          screenshots: [
-            {
-              name: 'Showcase',
-              path: `${baseUrl}/img/screenshot-showcase.png`,
-            },
-            {
-              name: 'Options',
-              path: `${baseUrl}/img/screenshot-clock-options.png`,
-            },
-          ],
-          version: '2.1.0',
-          updated: '2022-07-06',
-        },
-        hideFromList: false,
-        sort: 100,
-        skipDataQuery: true,
-        state: '',
-        baseUrl: baseUrl,
-        signature: 'valid',
-        module: moduleUrl,
+      config.panels = {
+        ...config.panels,
+        ...remotePanels,
       };
 
       setBackendSrv(backendSrv);
