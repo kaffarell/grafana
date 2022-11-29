@@ -12,7 +12,7 @@ import { merge, uniqueId } from 'lodash';
 import React from 'react';
 import { DeepPartial } from 'react-hook-form';
 import { Provider } from 'react-redux';
-import { Observable, Subscriber } from 'rxjs';
+import { Observable } from 'rxjs';
 import { MockDataSourceApi } from 'test/mocks/datasource_srv';
 import { getGrafanaContextMock } from 'test/mocks/getGrafanaContextMock';
 
@@ -229,24 +229,23 @@ const renderWithContext = async (
   return renderResult;
 };
 
+type NextFn = (value?: PanelData) => void;
 const mockQueryRunner = () => {
-  let emitter: { subscriber: Subscriber<PanelData> | undefined } = { subscriber: undefined };
+  let next: NextFn = () => {};
   const observable: Observable<PanelData> = new Observable((subscriber) => {
-    emitter.subscriber = subscriber;
+    next = subscriber.next;
   });
   const factory: QueryRunnerFactory = () => ({
     get: () => observable,
-    run: () => {},
+    run,
     cancel: () => {},
     destroy: () => {},
   });
-
   setQueryRunnerFactory(factory);
-
-  return emitter;
+  return next;
 };
-
-let emit: { subscriber: Subscriber<PanelData> | undefined } = { subscriber: undefined };
+let run: jest.Mock;
+let emit: NextFn;
 
 jest.mock('app/core/services/context_srv');
 
@@ -265,6 +264,7 @@ jest.mock('@grafana/runtime', () => ({
 beforeAll(() => {
   mocks.contextSrv.hasPermission.mockImplementation(() => true);
   emit = mockQueryRunner();
+  run = jest.fn();
 });
 
 afterAll(() => {
@@ -353,15 +353,23 @@ describe('CorrelationsPage', () => {
       // check query validation button and messages
       fireEvent.click(screen.getByRole('button', { name: /Validate query$/i }));
 
-      act(() => {
-        emit!.subscriber!.next({ series: [], timeRange: getDefaultTimeRange(), state: LoadingState.Error });
+      run.mockImplementationOnce(() => {
+        emit({ series: [], timeRange: getDefaultTimeRange(), state: LoadingState.Error });
       });
-      expect(screen.getByRole('alert')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Validate query$/i }));
 
-      act(() => {
-        emit!.subscriber!.next({ series: [], timeRange: getDefaultTimeRange(), state: LoadingState.Done });
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-      expect(screen.getByText('This query is valid.')).toBeInTheDocument();
+
+      run.mockImplementationOnce(() => {
+        emit({ series: [], timeRange: getDefaultTimeRange(), state: LoadingState.Done });
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Validate query$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('This query is valid.')).toBeInTheDocument();
+      });
 
       fireEvent.click(screen.getByRole('button', { name: /add$/i }));
 
